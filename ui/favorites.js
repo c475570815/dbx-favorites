@@ -152,7 +152,7 @@
   }
 
   function renameItem(item) {
-    var input = el("input", { class: "dbx-input", value: item.label || "", placeholder: "例如：风险区表" });
+    var input = el("input", { class: "dbx-input", value: item.label || "", placeholder: "例如：人员信息表" });
     dialog("改中文名", [
       el("div", { class: "labelrow" }, [el("span", { text: "名称" }), input]),
       el("p", { class: "dbx-hint", text: "物理表名 " + F.qualifiedName(item) + " 不受影响，树里优先显示这个中文名。" })
@@ -237,7 +237,7 @@
   }
 
   function newFolder(parentId) {
-    var input = el("input", { class: "dbx-input", placeholder: "例如：核心业务" });
+    var input = el("input", { class: "dbx-input", placeholder: "例如：人员信息表" });
     dialog("新建文件夹", [el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "名称" }), input])], [
       {
         label: "创建",
@@ -634,7 +634,7 @@
       schema: context.schema || "",
       table: context.table
     };
-    var nameInput = el("input", { class: "dbx-input", placeholder: "例如：风险区表" });
+    var nameInput = el("input", { class: "dbx-input", placeholder: "例如：人员信息表" });
     // Reopen the folder chosen last time instead of always landing on the first entry.
     var preferredFolder = settings().rememberLastFolder;
     var folderSelect = el("select", { class: "dbx-select" }, folders().map(function (folder) {

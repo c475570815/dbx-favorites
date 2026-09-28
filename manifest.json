@@ -7,7 +7,7 @@
   "publisher": "stashbox",
   "description": "Stash database tables in folders and reopen them in the native DBX table view from a dedicated favorites page.",
   "icon": "assets/plugin.svg",
-  "homepage": "https://github.com/t8y2/dbx",
+  "homepage": "https://github.com/c475570815/dbx-favorites",
   "engines": {
     "dbx": ">=0.5.68",
     "host_api": "1"
