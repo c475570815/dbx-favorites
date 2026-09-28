@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StashBox</title>
+    <link rel="stylesheet" href="cabinet.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="modal"></div>
+    <div id="toasts"></div>
+    <script src="host.js"></script>
+    <script src="transfer.js"></script>
+    <script src="tree.js"></script>
+    <script src="favorites.js"></script>
+    <script src="settings.js"></script>
+    <script>
+      // One workbench hosts two views. Both internal commands target the same contribution and
+      // differ only by the page hint in their context, so the toolbar gets a single entry.
+      (function () {
+        var current = null;
+
+        function viewOf(context) {
+          if (context && context.page) return context.page;
+          if (context && context.plugin && context.plugin.page) return context.plugin.page;
+          return "favorites";
+        }
+
+        function show(view) {
+          current = view;
+          if (view === "settings") return window.SettingsPage.boot();
+          return window.FavoritesPage.boot();
+        }
+
+        window.Stash = {
+          show: function (view) {
+            if (view !== current) show(view);
+          },
+          current: function () {
+            return current;
+          }
+        };
+
+        window.Fav.ready().then(function () {
+          show(viewOf(window.Fav.context()));
+          window.Fav.onContext(function (context) {
+            var next = viewOf(context || {});
+            if (next !== current) {
+              if (current === "settings") window.SettingsPage.teardown();
+              show(next);
+            }
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

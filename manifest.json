@@ -1,0 +1,165 @@
+{
+  "$schema": "https://raw.githubusercontent.com/t8y2/dbx/plugin-sdk-v1/plugins/manifest.schema.json",
+  "manifest_version": 1,
+  "id": "io.stashbox.dbx.favorites",
+  "name": "StashBox",
+  "version": "0.3.0",
+  "publisher": "stashbox",
+  "description": "Stash database tables in folders and reopen them in the native DBX table view from a dedicated favorites page.",
+  "icon": "assets/plugin.svg",
+  "homepage": "https://github.com/t8y2/dbx",
+  "engines": {
+    "dbx": ">=0.5.68",
+    "host_api": "1"
+  },
+  "permissions": [
+    "host.workbench"
+  ],
+  "entrypoints": {
+    "backend": {
+      "protocol_versions": [1],
+      "transport": "stdio-jsonl",
+      "executable": "bin/dbx-favorites.exe"
+    },
+    "ui": {
+      "root": "ui",
+      "entry": "ui/index.html"
+    }
+  },
+  "contributions": [
+    {
+      "type": "workbench",
+      "id": "io.stashbox.dbx.favorites.main",
+      "label": "StashBox",
+      "description": "Browse, search and reopen stashed tables grouped in folders.",
+      "icon": "assets/plugin.svg"
+    },
+    {
+      "type": "context-menu",
+      "id": "io.stashbox.dbx.favorites.add",
+      "label": "收藏此表",
+      "description": "Add the selected table to Table Favorites.",
+      "menu": "table",
+      "action": {
+        "type": "open-workbench",
+        "workbench": "io.stashbox.dbx.favorites.main"
+      }
+    },
+    {
+      "type": "command",
+      "id": "io.stashbox.dbx.favorites.cmd.open",
+      "label": "StashBox",
+      "description": "Open the StashBox favorites workbench.",
+      "icon": "assets/plugin.svg",
+      "action": {
+        "type": "open-workbench",
+        "workbench": "io.stashbox.dbx.favorites.main",
+        "presentation": "tab",
+        "reuse": "singleton",
+        "instance_key": "favorites",
+        "context": {
+          "page": "favorites"
+        }
+      }
+    },
+    {
+      "type": "command",
+      "id": "io.stashbox.dbx.favorites.cmd.pick",
+      "label": "快速打开收藏的表",
+      "description": "Pick a stashed table and open it in the native DBX table view.",
+      "icon": "assets/plugin.svg",
+      "action": {
+        "type": "open-workbench",
+        "workbench": "io.stashbox.dbx.favorites.main",
+        "presentation": "panel",
+        "reuse": "singleton",
+        "instance_key": "favorites-pick",
+        "options_action": "favorites/launch-options",
+        "context": {
+          "mode": "pick",
+          "page": "favorites"
+        }
+      }
+    },
+    {
+      "type": "command",
+      "id": "io.stashbox.dbx.favorites.cmd.settings",
+      "label": "StashBox 配置",
+      "description": "Open the StashBox settings workbench.",
+      "icon": "assets/plugin.svg",
+      "action": {
+        "type": "open-workbench",
+        "workbench": "io.stashbox.dbx.favorites.main",
+        "presentation": "tab",
+        "reuse": "singleton",
+        "instance_key": "favorites",
+        "context": {
+          "page": "settings"
+        }
+      }
+    },
+    {
+      "type": "menus",
+      "id": "io.stashbox.dbx.favorites.menus",
+      "items": [
+        {
+          "location": "commandPalette",
+          "command": "io.stashbox.dbx.favorites.cmd.open",
+          "group": "primary",
+          "order": 100
+        },
+        {
+          "location": "commandPalette",
+          "command": "io.stashbox.dbx.favorites.cmd.pick",
+          "group": "primary",
+          "order": 110
+        },
+        {
+          "location": "commandPalette",
+          "command": "io.stashbox.dbx.favorites.cmd.settings",
+          "group": "primary",
+          "order": 120
+        },
+        {
+          "location": "appToolbar",
+          "command": "io.stashbox.dbx.favorites.cmd.open",
+          "group": "navigation",
+          "order": 150,
+          "default_visible": true
+        },
+        {
+          "location": "appSidebar",
+          "command": "io.stashbox.dbx.favorites.cmd.open",
+          "group": "primary",
+          "order": 200,
+          "default_visible": true
+        }
+      ]
+    }
+  ],
+  "localizations": {
+    "zh-CN": {
+      "name": "StashBox",
+      "description": "收藏数据库表、按文件夹归类，并在专用收藏页里一键回到 DBX 原生表视图。",
+      "contributions": {
+        "io.stashbox.dbx.favorites.main": {
+          "label": "StashBox",
+          "description": "浏览、搜索并重新打开按文件夹归类的收藏表。"
+        },
+        "io.stashbox.dbx.favorites.add": {
+          "label": "收藏此表",
+          "description": "把选中的表加入表收藏。"
+        },
+        "io.stashbox.dbx.favorites.cmd.open": {
+          "label": "StashBox"
+        },
+        "io.stashbox.dbx.favorites.cmd.pick": {
+          "label": "快速打开收藏的表"
+        },
+        "io.stashbox.dbx.favorites.cmd.settings": {
+          "label": "StashBox 配置"
+        }
+      }
+    }
+  }
+}

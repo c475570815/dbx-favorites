@@ -1,0 +1,15 @@
+# Build outputs (per DBX 官方约定，bin/ 与 dist/ 为构建产物，不提交 Git)
+/bin/
+/dist/
+
+# 临时文件与原子写入残留
+*.tmp
+*.bak
+*.corrupt
+
+# IDE / 系统文件
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
