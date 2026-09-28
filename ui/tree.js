@@ -223,7 +223,7 @@
       el("span", { class: "row__path", text: F.qualifiedName(item) }),
       el("span", { class: "row__tag", text: connectionTag(ctx, item) }),
       el("span", { class: "row__num", text: String(item.openCount || 0) }),
-      el("span", { class: "row__acts" }, [open, el("button", { class: "act", text: "结构", title: "查看列定义" }), el("button", { class: "act", title: "更多操作" }, [icon("dots")])])
+      el("span", { class: "row__acts" }, [open, el("button", { class: "act", text: "结构", title: "查看列定义" }), el("button", { class: "act act--icon", title: "更多操作" }, [icon("dots")])])
     ]);
     var acts = row.querySelectorAll(".act");
     acts[1].addEventListener("click", function (event) {
@@ -283,8 +283,8 @@
       el("span", { class: "row__name", text: node.name }),
       el("span", { class: "row__count", text: String(node.total) }),
       el("span", { class: "row__acts" }, [
-        el("button", { class: "act", title: "往此文件夹收表" }, [icon("plus")]),
-        el("button", { class: "act", title: "文件夹操作" }, [icon("dots")])
+        el("button", { class: "act act--icon", title: "往此文件夹收表" }, [icon("plus")]),
+      el("button", { class: "act act--icon", title: "文件夹操作" }, [icon("dots")])
       ])
     ]);
     row.querySelectorAll(".act")[0].addEventListener("click", function (event) {

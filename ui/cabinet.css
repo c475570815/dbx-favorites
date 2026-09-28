@@ -172,18 +172,30 @@ html:not([data-dbx-theme="dark"]) body::before { opacity: 1; }
   font-variant-numeric: tabular-nums; color: var(--sb-faint);
 }
 .row__acts {
-  flex: 0 0 104px; display: flex; gap: 4px; justify-content: flex-end;
+  /* Width is content-driven: the previous hard 104px squeezed the labelled buttons until the
+     Chinese labels wrapped per character (打/开 stacked vertically inside each button). */
+  flex: 0 0 auto; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 5px;
+  justify-content: flex-end; margin-left: auto;
   opacity: 0; transform: translateX(5px); transition: opacity 0.16s, transform 0.16s;
 }
 .row:hover .row__acts, .row:focus-within .row__acts, .row--on .row__acts { opacity: 1; transform: none; }
 .act {
-  font: inherit; font-size: 11px; line-height: 1; padding: 3px 6px; cursor: pointer;
-  color: var(--sb-muted); background: transparent; border: 1px solid var(--sb-line); border-radius: 2px;
-  transition: color 0.14s, border-color 0.14s, background 0.14s;
+  font: inherit; font-size: 11px; line-height: 1; padding: 3px 8px; cursor: pointer;
+  white-space: nowrap;
+  color: var(--sb-muted); background: transparent; border: 1px solid var(--sb-line); border-radius: 3px;
+  transition: color 0.14s, border-color 0.14s, background 0.14s, box-shadow 0.14s, filter 0.14s;
 }
+.act--icon { padding: 3px 5px; }
 .act:hover { color: var(--sb-brass-ink); border-color: var(--sb-brass); background: var(--sb-brass-soft); }
-.act--go { color: #fff; background: var(--sb-brass); border-color: var(--sb-brass); font-weight: 600; }
-.act--go:hover { color: #fff; background: var(--sb-brass); border-color: var(--sb-brass); }
+/* Primary "open" reads as a solid brass cabinet pull: machined top highlight, brightening when gripped. */
+.act--go {
+  color: #fff; background: var(--sb-brass); border-color: var(--sb-brass); font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.act--go:hover {
+  color: #fff; background: var(--sb-brass); border-color: var(--sb-brass);
+  filter: brightness(1.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
 .act--bad:hover { color: var(--sb-danger); border-color: var(--sb-danger); background: transparent; }
 .act[disabled] { opacity: 0.45; cursor: progress; }
 .act svg, .caret svg, .row__icon svg, .mast__mark { display: block; }
