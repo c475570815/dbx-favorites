@@ -663,15 +663,18 @@
       });
     }
     // Shared persist step: add on the sidecar, remember the chosen folder, refresh the tree.
+    // The stash result must survive reload(): reload() resolves undefined, so piping it
+    // through .then(reload) would discard the favorite id that saveAndOpen opens next.
     function persistStash() {
       return stash()
         .then(function (result) {
           return rememberFolder(folderSelect.value).then(function () { return result; });
         })
-        .then(reload)
         .then(function (result) {
-          render();
-          return result;
+          return reload().then(function () {
+            render();
+            return result;
+          });
         });
     }
     function saveOnly() {
