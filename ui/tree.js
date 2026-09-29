@@ -9,7 +9,6 @@
     chevron: "M5 3l5 5-5 5",
     drawer: "M1.5 2.5h11v4h-11zM1.5 8.5h11v4h-11z M8 4.5h1.5 M8 10.5h1.5",
     table: "M1.5 2.5h11v10h-11z M1.5 6h11 M5.5 6v6.5",
-    plus: "M7 2.5v9 M2.5 7h9",
     dots: "M3 7h1.4 M7 7h1.4 M11 7h1.4",
     star: "M7 1l1.7 3.5 3.8.5-2.8 2.7.7 3.8L7 9.7l-3.4 1.8.7-3.8L1.5 5l3.8-.5z"
   };
@@ -283,15 +282,10 @@
       el("span", { class: "row__name", text: node.name }),
       el("span", { class: "row__count", text: String(node.total) }),
       el("span", { class: "row__acts" }, [
-        el("button", { class: "act act--icon", title: "往此文件夹收表" }, [icon("plus")]),
-      el("button", { class: "act act--icon", title: "文件夹操作" }, [icon("dots")])
+        el("button", { class: "act act--icon", title: "文件夹操作" }, [icon("dots")])
       ])
     ]);
     row.querySelectorAll(".act")[0].addEventListener("click", function (event) {
-      event.stopPropagation();
-      ctx.onAddTo(node);
-    });
-    row.querySelectorAll(".act")[1].addEventListener("click", function (event) {
       event.stopPropagation();
       ctx.onFolderMenu(node);
     });
@@ -348,8 +342,8 @@
       icon("drawer", ""),
       el("div", {}, [
         el("h4", { text: "柜子是空的" }),
-        el("p", {}, [document.createTextNode("在左侧数据库树右键任意表，选 "), el("b", { text: "收藏此表" }), document.createTextNode("；或点上方 "), el("b", { text: "收表" }), document.createTextNode(" 按连接浏览。")]),
-        el("p", { class: "dbx-hint", text: "收藏时可以填一个中文名称，之后在树里就按中文名找表。视图和物化视图只能在“收表”里勾选（DBX 只在表节点上挂插件右键菜单）。按 / 聚焦搜索，↑↓ 移动，→ 展开，Enter 打开。" })
+        el("p", {}, [document.createTextNode("在左侧数据库树右键任意表，选 "), el("b", { text: "收藏此表" }), document.createTextNode("，收进这里的文件夹。")]),
+        el("p", { class: "dbx-hint", text: "收藏时可以填一个中文名称，之后在树里就按中文名找表。目前收藏入口只在表节点上（视图 / 物化视图暂不支持）。按 / 聚焦搜索，↑↓ 移动，→ 展开，Enter 打开。" })
       ])
     ]);
   }

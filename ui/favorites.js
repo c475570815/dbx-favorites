@@ -180,13 +180,58 @@
   }
 
   function moveItem(item) {
-    var select = el("select", { class: "dbx-select" }, folders().map(function (folder) {
-      var option = el("option", { value: folder.id, text: folder.name });
-      if (folder.id === item.folderId) option.selected = true;
-      return option;
-    }));
-    dialog("移动到文件夹", [el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "目标" }), select])], [
-      { label: "移动", kind: "primary", action: function () { return run("favorites/move", { id: item.id, folderId: select.value }, "已移动"); } },
+    // The destination list mirrors the cabinet tree (same order, same nesting) so the target
+    // is picked the way it is seen every day. Checkboxes behave radio-like: exactly one target.
+    var model = window.Tree.build({ folders: folders(), favorites: favorites(), query: "", collapsed: [] });
+    var chosen = item.folderId || "inbox";
+    var boxes = [];
+    var list = el("div", { class: "ftree" });
+    function walkNode(node, depth) {
+      if (node.kind !== "folder" || node.id === "__loose") return;
+      var box = el("input", { type: "checkbox" });
+      box.checked = node.id === chosen;
+      box.addEventListener("change", function () {
+        if (box.checked) {
+          chosen = node.id;
+          boxes.forEach(function (other) {
+            if (other !== box) other.checked = false;
+          });
+        } else if (chosen === node.id) {
+          chosen = "";
+        }
+      });
+      boxes.push(box);
+      var row = el("label", { class: "ftree__row" }, [
+        box,
+        el("span", { class: "ftree__name", text: node.name, title: node.name }),
+        node.id === (item.folderId || "inbox") ? el("span", { class: "ftree__here", text: "当前" }) : null,
+        el("span", { class: "ftree__count", text: String(node.total) })
+      ].filter(Boolean));
+      row.style.paddingLeft = (10 + depth * 20) + "px";
+      list.appendChild(row);
+      node.children.forEach(function (child) {
+        walkNode(child, depth + 1);
+      });
+    }
+    model.roots.forEach(function (root) {
+      walkNode(root, 0);
+    });
+    dialog("移动到文件夹 · " + (item.label || item.table), [
+      el("p", { class: "dbx-hint", text: "勾选一个目的地文件夹，层级与收藏柜一致；当前所在文件夹已标「当前」。" }),
+      list
+    ], [
+      {
+        label: "移动",
+        kind: "primary",
+        action: function () {
+          if (!chosen) {
+            F.toast("请先勾选目标文件夹", "error");
+            return Promise.resolve();
+          }
+          if (chosen === (item.folderId || "inbox")) return Promise.resolve();
+          return run("favorites/move", { id: item.id, folderId: chosen }, "已移动");
+        }
+      },
       { label: "取消", action: function () {} }
     ]);
   }
@@ -263,8 +308,7 @@
   function folderMenu(node) {
     dialog(node.name + " · 操作", [
       el("div", { class: "toolbar" }, [
-        el("button", { class: "dbx-btn dbx-btn--primary", text: "往这里收表", onclick: function () { closeMenu(); browseDialog(node.id); } }),
-        el("button", { class: "dbx-btn", text: "新建子文件夹", onclick: function () { closeMenu(); newFolder(node.id); } }),
+        el("button", { class: "dbx-btn dbx-btn--primary", text: "新建子文件夹", onclick: function () { closeMenu(); newFolder(node.id); } }),
         el("button", { class: "dbx-btn", text: "重命名", onclick: function () { closeMenu(); renameFolder(node); } }),
         el("button", { class: "dbx-btn", text: node.open ? "折叠" : "展开", onclick: function () { closeMenu(); toggle(node); render({ animate: false }); } }),
         el("button", { class: "dbx-btn dbx-btn--danger", text: "删除", onclick: function () { closeMenu(); deleteFolder(node); } })
@@ -306,165 +350,6 @@
         row.classList.remove("row--hit");
       }, 620);
     });
-  }
-
-  // ------------------------------------------------------------------- browse
-
-  function browseDialog(presetFolder) {
-    var connectionSelect = el("select", { class: "dbx-select" }, [el("option", { value: "", text: "选择连接…" })].concat(
-      state.connections.map(function (connection) {
-        return el("option", { value: connection.id, text: (connection.name || connection.id) + " · " + (connection.dbType || "") });
-      })
-    ));
-    var databaseInput = el("input", { class: "dbx-input", placeholder: "库名，留空用连接默认库" });
-    var schemaInput = el("input", { class: "dbx-input", placeholder: "模式，如 zhd_dp" });
-    var remembered = settings().rememberLastFolder;
-    var folderSelect = el("select", { class: "dbx-select" }, folders().map(function (folder) {
-      var option = el("option", { value: folder.id, text: folder.name });
-      var preferred = presetFolder || remembered;
-      if (preferred && folder.id === preferred) option.selected = true;
-      return option;
-    }));
-    var filter = el("input", { class: "dbx-input", placeholder: "过滤表名 / 注释" });
-    var list = el("div", { class: "tablelist" });
-    var status = el("div", { class: "dbx-hint", text: "列表来自 DBX 本机桥接，不额外申请执行权限；视图 / 物化视图同样可收（DBX 只在表节点上挂右键菜单），勾选后可逐条填中文名。" });
-    var loaded = [];
-
-    function currentConnection() {
-      for (var i = 0; i < state.connections.length; i++) {
-        if (state.connections[i].id === connectionSelect.value) return state.connections[i];
-      }
-      return null;
-    }
-
-    function paint() {
-      var needle = filter.value.trim().toLowerCase();
-      list.textContent = "";
-      var visible = loaded.filter(function (row) {
-        return !needle || (row.name + " " + (row.comment || "")).toLowerCase().indexOf(needle) >= 0;
-      });
-      if (!visible.length) {
-        list.appendChild(el("div", { class: "dbx-hint", text: loaded.length ? "没有匹配的表" : "先选连接，点“加载表”" }));
-        return;
-      }
-      visible.forEach(function (row) {
-        var box = el("input", { type: "checkbox" });
-        var suggestion = row.comment ? firstWords(row.comment) : "";
-        var name = el("input", { class: "dbx-input", placeholder: "中文名，可留空", value: row.label === undefined ? suggestion : row.label });
-        // Re-filtering rebuilds these inputs, so checkbox state and the edited name live on the
-        // row object; otherwise filtering after ticking rows silently dropped the selection.
-        box.checked = !!row.checked;
-        box.addEventListener("change", function () {
-          row.checked = box.checked;
-        });
-        name.addEventListener("input", function () {
-          row.label = name.value;
-        });
-        list.appendChild(el("label", { class: "picker" }, [
-          box,
-          el("span", { class: "picker__name", text: row.name, title: row.name }),
-          el("span", { class: "picker__type", text: row.table_type || "" }),
-          el("span", { class: "picker__cn" }, [name])
-        ]));
-      });
-    }
-
-    function load() {
-      var connection = currentConnection();
-      if (!connection) {
-        F.toast("请先选择连接", "error");
-        return Promise.resolve();
-      }
-      status.textContent = "加载中…";
-      return F.invoke("favorites/tables/list", {
-        connectionId: connection.id,
-        connectionName: connection.name || "",
-        database: databaseInput.value.trim(),
-        schema: schemaInput.value.trim()
-      }).then(
-        function (result) {
-          loaded = result.rows || [];
-          status.textContent = "共 " + loaded.length + " 个对象 · 桥接端口 " + result.port;
-          paint();
-        },
-        function (error) {
-          loaded = [];
-          status.textContent = "加载失败：" + F.messageOf(error);
-          paint();
-        }
-      );
-    }
-
-    filter.addEventListener("input", paint);
-    databaseInput.addEventListener("change", load);
-    schemaInput.addEventListener("change", load);
-    connectionSelect.addEventListener("change", load);
-
-    var body = el("div", {}, [
-      el("div", { class: "grid" }, [
-        el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "连接" }), connectionSelect]),
-        el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "数据库" }), databaseInput]),
-        el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "模式" }), schemaInput]),
-        el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "存入文件夹" }), folderSelect])
-      ]),
-      el("div", { class: "toolbar" }, [el("button", { class: "dbx-btn dbx-btn--primary", text: "加载表", onclick: load }), filter]),
-      status,
-      el("div", { class: "dbx-hint", text: "提示：勾上表以后，右侧中文名留空则取注释的前几个字，双击行可直接改。" }),
-      list
-    ]);
-
-    dialog("收表", [body], [
-      {
-        label: "加入收藏",
-        kind: "primary",
-        action: function () {
-          // Selections are read from the row model, not the rebuilt DOM, so filtered-out ticks count.
-          var picked = loaded.filter(function (row) { return row.checked; });
-          if (!picked.length) {
-            F.toast("没有勾选任何表", "error");
-            return Promise.resolve();
-          }
-          var connection = currentConnection();
-          var created = 0;
-          var existed = 0;
-          var chain = Promise.resolve();
-          picked.forEach(function (row) {
-            chain = chain.then(function () {
-              return F.invoke("favorites/add", {
-                connectionId: connection ? connection.id : "",
-                connectionName: connection ? connection.name || "" : "",
-                database: databaseInput.value.trim(),
-                schema: schemaInput.value.trim(),
-                table: row.name,
-                label: row.label === undefined ? (row.comment ? firstWords(row.comment) : "") : String(row.label).trim(),
-                folderId: folderSelect.value
-              }).then(function (result) {
-                if (result && result.existing) existed++;
-                else created++;
-              });
-            });
-          });
-          return chain
-            .then(function () {
-              return rememberFolder(folderSelect.value);
-            })
-            .then(function () {
-              return reload();
-            })
-            .then(function () {
-              render();
-              F.toast("新增 " + created + " 条收藏" + (existed ? "，已在该文件夹中 " + existed + " 条" : ""), "success");
-            });
-        }
-      },
-      { label: "取消", action: function () {} }
-    ]);
-  }
-
-  // Comment text is often a full sentence; the first clause makes a decent default display name.
-  function firstWords(comment) {
-    var cleaned = String(comment).replace(/\s+/g, " ").split(/[（(，,。；:：/]/)[0].trim();
-    return cleaned.length > 18 ? cleaned.slice(0, 18) : cleaned;
   }
 
   // ------------------------------------------------------------------- shell
@@ -548,9 +433,6 @@
       onPreview: preview,
       onLeafMenu: leafMenu,
       onFolderMenu: folderMenu,
-      onAddTo: function (node) {
-        browseDialog(node.id);
-      },
       onMoveTo: moveToFolder
     };
   }
@@ -586,7 +468,6 @@
         el("span", { class: "tools__key", text: "/" })
       ]),
       el("div", { class: "tools__right" }, [
-        el("button", { class: "tbtn tbtn--go", text: "收表", onclick: function () { browseDialog(null); } }),
         el("button", { class: "tbtn", text: "新建文件夹", onclick: function () { newFolder(null); } }),
         el("button", { class: "tbtn tbtn--quiet", text: "展开全部", onclick: function () { setAll(false); } }),
         el("button", { class: "tbtn tbtn--quiet", text: "折叠全部", onclick: function () { setAll(true); } }),

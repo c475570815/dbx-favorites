@@ -121,7 +121,7 @@ namespace DbxFavorites
 
         // Reads the full body: exact bytes for Content-Length, de-chunked for chunked TE, and
         // until server close otherwise. Stopping at the header terminator truncated responses
-        // larger than one TCP segment (thousands of tables in /data/list-tables).
+        // larger than one TCP segment (wide describe-table results).
         static byte[] ReadBody(Stream stream, MemoryStream all, int bodyStart, byte[] buffer, string contentLength, string transferEncoding)
         {
             var chunked = transferEncoding != null && transferEncoding.IndexOf("chunked", StringComparison.OrdinalIgnoreCase) >= 0;

@@ -177,10 +177,8 @@ namespace DbxFavorites
                     return LaunchOptions();
                 case "favorites/probe":
                     return Probe();
-                case "favorites/tables/list":
-                    return BridgeData("/data/list-tables", parameters, false);
                 case "favorites/table/describe":
-                    return BridgeData("/data/describe-table", parameters, true);
+                    return BridgeData("/data/describe-table", parameters);
                 default:
                     throw new RpcError(-32601, "Method not found: " + method);
             }
@@ -551,13 +549,13 @@ namespace DbxFavorites
                 "table", Values.Str(Values.Get(identity, "table"), ""));
         }
 
-        static object BridgeData(string path, Dictionary<string, object> parameters, bool requireTable)
+        static object BridgeData(string path, Dictionary<string, object> parameters)
         {
-            var identity = IdentityOf(requireTable ? parameters : AddFakeTable(parameters));
+            var identity = IdentityOf(parameters);
             var settings = store.Settings();
             var timeout = Values.Int(Values.Get(settings, "timeoutMs"), 6000);
             var found = PortDiscovery.Resolve(Values.Int(Values.Get(settings, "bridgePort"), 0), Values.Str(Values.Get(settings, "bridgePortFile"), ""));
-            if (found.Port <= 0) throw new RpcError(-32008, "未发现桥接端口，无法浏览表列表");
+            if (found.Port <= 0) throw new RpcError(-32008, "未发现桥接端口，无法查询表结构");
 
             var body = Json.Write(BridgeBody(identity));
             var reply = Bridge.Post(found.Port, path, body, timeout);
@@ -573,14 +571,6 @@ namespace DbxFavorites
                 throw new RpcError(-32010, path + " 响应不是 JSON：" + error.Message);
             }
             return Values.Map("rows", rows, "port", found.Port);
-        }
-
-        // /data/list-tables does not take a table name, but BridgeBody always fills one.
-        static Dictionary<string, object> AddFakeTable(Dictionary<string, object> parameters)
-        {
-            var copy = new Dictionary<string, object>(parameters, StringComparer.Ordinal);
-            if (!copy.ContainsKey("table")) copy["table"] = "-";
-            return copy;
         }
 
         static object LaunchOptions()
