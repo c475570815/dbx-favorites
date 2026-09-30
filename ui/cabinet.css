@@ -262,11 +262,14 @@ html[data-dbx-theme="dark"] .dbx-select option:checked {
   background-color: var(--sb-brass-soft);
 }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+/* Vertical form layout for dialogs that stack full-width controls (stash dialog). */
+.stack { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
 .toolbar .dbx-input { flex: 1 1 160px; }
-/* Folder tree inside the move dialog: mirrors the cabinet tree with radio-like checkboxes. */
+/* Folder tree picker shared by the stash and move dialogs: mirrors the cabinet tree. */
 .ftree { max-height: 300px; overflow: auto; border: 1px solid var(--sb-line); border-radius: 3px; padding: 5px; }
+.ftree__empty { padding: 8px 10px; margin: 0; }
 .ftree__row {
   display: flex; align-items: center; gap: 9px; padding: 5px 10px; border-radius: 3px; cursor: pointer;
 }

@@ -179,17 +179,20 @@
     ]);
   }
 
-  function moveItem(item) {
-    // The destination list mirrors the cabinet tree (same order, same nesting) so the target
-    // is picked the way it is seen every day. Checkboxes behave radio-like: exactly one target.
+  // Tree-shaped folder picker shared by the stash and move dialogs. The list mirrors the cabinet
+  // tree (same nesting, same order) so a destination is recognized the way it is seen every day.
+  // Checkboxes behave radio-like: checking one clears the rest, so exactly one target is chosen.
+  function folderTreePicker(options) {
     var model = window.Tree.build({ folders: folders(), favorites: favorites(), query: "", collapsed: [] });
-    var chosen = item.folderId || "inbox";
+    var chosen = options.selected || "";
+    var prechecked = false;
     var boxes = [];
-    var list = el("div", { class: "ftree" });
-    function walkNode(node, depth) {
+    var root = el("div", { class: "ftree" });
+    function paintNode(node, depth) {
       if (node.kind !== "folder" || node.id === "__loose") return;
       var box = el("input", { type: "checkbox" });
       box.checked = node.id === chosen;
+      if (box.checked) prechecked = true;
       box.addEventListener("change", function () {
         if (box.checked) {
           chosen = node.id;
@@ -201,35 +204,52 @@
         }
       });
       boxes.push(box);
+      var badge = node.id === options.marked ? el("span", { class: "ftree__here", text: options.markedLabel || "当前" }) : null;
       var row = el("label", { class: "ftree__row" }, [
         box,
         el("span", { class: "ftree__name", text: node.name, title: node.name }),
-        node.id === (item.folderId || "inbox") ? el("span", { class: "ftree__here", text: "当前" }) : null,
+        badge,
         el("span", { class: "ftree__count", text: String(node.total) })
       ].filter(Boolean));
       row.style.paddingLeft = (10 + depth * 20) + "px";
-      list.appendChild(row);
+      root.appendChild(row);
       node.children.forEach(function (child) {
-        walkNode(child, depth + 1);
+        paintNode(child, depth + 1);
       });
     }
-    model.roots.forEach(function (root) {
-      walkNode(root, 0);
+    model.roots.forEach(function (node) {
+      paintNode(node, 0);
     });
+    // A selected id matching no node (folder deleted since it was remembered) must not silently
+    // survive: the value would point at a folder that no longer exists.
+    if (!prechecked) chosen = "";
+    if (!root.childElementCount) {
+      root.appendChild(el("p", { class: "dbx-hint ftree__empty", text: "还没有文件夹；收藏会进入「未分类」。" }));
+    }
+    return {
+      el: root,
+      value: function () { return chosen; }
+    };
+  }
+
+  function moveItem(item) {
+    var current = item.folderId || "inbox";
+    var picker = folderTreePicker({ selected: current, marked: current, markedLabel: "当前" });
     dialog("移动到文件夹 · " + (item.label || item.table), [
       el("p", { class: "dbx-hint", text: "勾选一个目的地文件夹，层级与收藏柜一致；当前所在文件夹已标「当前」。" }),
-      list
+      picker.el
     ], [
       {
         label: "移动",
         kind: "primary",
         action: function () {
-          if (!chosen) {
+          var target = picker.value();
+          if (!target) {
             F.toast("请先勾选目标文件夹", "error");
             return Promise.resolve();
           }
-          if (chosen === (item.folderId || "inbox")) return Promise.resolve();
-          return run("favorites/move", { id: item.id, folderId: chosen }, "已移动");
+          if (target === current) return Promise.resolve();
+          return run("favorites/move", { id: item.id, folderId: target }, "已移动");
         }
       },
       { label: "取消", action: function () {} }
@@ -516,13 +536,13 @@
       table: context.table
     };
     var nameInput = el("input", { class: "dbx-input", placeholder: "例如：人员信息表" });
-    // Reopen the folder chosen last time instead of always landing on the first entry.
-    var preferredFolder = settings().rememberLastFolder;
-    var folderSelect = el("select", { class: "dbx-select" }, folders().map(function (folder) {
-      var option = el("option", { value: folder.id, text: folder.name });
-      if (preferredFolder && folder.id === preferredFolder) option.selected = true;
-      return option;
-    }));
+    // Reopen on the folder chosen last time; the「上次」badge makes the pre-check self-explaining.
+    var remembered = settings().rememberLastFolder;
+    var folderPicker = folderTreePicker({
+      selected: remembered || "inbox",
+      marked: remembered,
+      markedLabel: "上次"
+    });
     function stash() {
       return F.invoke("favorites/add", {
         connectionId: identity.connectionId,
@@ -531,7 +551,7 @@
         schema: identity.schema,
         table: identity.table,
         label: nameInput.value.trim(),
-        folderId: folderSelect.value
+        folderId: folderPicker.value()
       });
     }
     // The settings toggle only decides which action is the default (primary); both are always
@@ -549,7 +569,7 @@
     function persistStash() {
       return stash()
         .then(function (result) {
-          return rememberFolder(folderSelect.value).then(function () { return result; });
+          return rememberFolder(folderPicker.value()).then(function () { return result; });
         })
         .then(function (result) {
           return reload().then(function () {
@@ -576,9 +596,10 @@
         el("span", { text: "表" }),
         el("code", { text: (identity.connectionName || identity.connectionId.slice(0, 8)) + " · " + (identity.database || "?") + "." + (identity.schema || "?") + "." + identity.table })
       ]),
-      el("div", { class: "grid" }, [
+      el("div", { class: "stack" }, [
         el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "中文名称" }), nameInput]),
-        el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "文件夹" }), folderSelect])
+        // Full-width tree: half a dialog is too narrow for indented folders plus counts.
+        el("div", { class: "field" }, [el("label", { class: "dbx-label", text: "收藏到文件夹（勾选一个）" }), folderPicker.el])
       ])
     ], actions);
     nameInput.focus();
